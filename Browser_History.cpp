@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <limits>
 using namespace std;
 
 // Node class representing a webpage
@@ -27,9 +27,27 @@ private:
 public:
     webpage_List() : head(nullptr), tail(nullptr), current(nullptr) {}
 
+    // Destructor to free all allocated memory
+    ~webpage_List()
+    {
+        webpage *temp = head;
+        while (temp != nullptr)
+        {
+            webpage *toDelete = temp;
+            temp = temp->next;
+            delete toDelete;
+        }
+        head = nullptr;
+        tail = nullptr;
+        current = nullptr;
+    }
+
     // A utility function to clear forward history
     void clear_forward_history()
     {
+        if (current == nullptr)
+            return;
+
         webpage *temp = current->next;
         while (temp)
         {
@@ -41,7 +59,7 @@ public:
         tail = current;
     }
 
-    // Insert a new webpage at the current position
+    // Insert a new webpage at the current position (simulates a new visit)
     void insert_webpage(int id, float time_stamp)
     {
         webpage *newPage = new webpage(id, time_stamp);
@@ -254,27 +272,30 @@ public:
             return;
         }
 
+        webpage *prevNode = temp->prev;
+        webpage *nextNode = temp->next;
+
         // Adjust head, tail, and current pointers
         if (temp == head)
         {
-            head = head->next;
+            head = nextNode;
             if (head)
                 head->prev = nullptr;
         }
         if (temp == tail)
         {
-            tail = tail->prev;
+            tail = prevNode;
             if (tail)
                 tail->next = nullptr;
         }
-        if (temp->prev)
-            temp->prev->next = temp->next;
-        if (temp->next)
-            temp->next->prev = temp->prev;
+        if (prevNode)
+            prevNode->next = nextNode;
+        if (nextNode)
+            nextNode->prev = prevNode;
 
         if (temp == current)
         {
-            current = temp->prev ? temp->prev : temp->next;
+            current = prevNode ? prevNode : nextNode;
         }
 
         delete temp;
@@ -446,7 +467,15 @@ int main()
         cout << "6. Delete Webpage(s)\n";
         cout << "7. Exit\n";
         cout << "Enter your choice: ";
-        cin >> choice;
+        // Read input and check for failure
+        if (!(cin >> choice))
+        {
+            cout << "\nInvalid input! Please enter a number.\n";
+            cin.clear();                                         // Clear the error flags
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard bad input
+            choice = 0;                                          // Reset choice to a value that won't exit the loop
+            continue;                                            // Skip the rest of the loop and start over
+        }
 
         switch (choice)
         {
@@ -477,4 +506,4 @@ int main()
     } while (choice != 7);
     cout << string(50, ' ') << "Thank you for using the browser history program!" << endl;
     return 0;
-}   
+}
