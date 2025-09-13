@@ -22,6 +22,7 @@ private:
     Seat *head;
     int ROWS;
     int COLS;
+    int pricePerSeat = 150; // Add this line
 
 public:
     MovieTheater(int rows, int cols) : head(nullptr), ROWS(rows), COLS(cols)
@@ -140,6 +141,7 @@ public:
         {
             selectedSeat->isBooked = true;
             cout << "Successfully booked seat (" << row << ", " << seat << ")." << endl;
+            cout << "Total price: " << pricePerSeat << endl; // Show price
         }
     }
 
@@ -189,6 +191,7 @@ public:
                 cout << "  (" << seat.first << ", " << seat.second << ")";
             }
             cout << endl;
+            cout << "Total price: " << pricePerSeat * seatsBooked << endl; // Show total price
         }
         else
         {
