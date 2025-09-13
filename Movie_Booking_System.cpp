@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <limits>
+#include <cctype>
 
 using namespace std;
 
@@ -10,10 +11,11 @@ struct Seat
     int row;
     int seatNumber;
     bool isBooked;
+    string userName;
     Seat *next;
     Seat *prev;
 
-    Seat(int r, int s) : row(r), seatNumber(s), isBooked(false), next(nullptr), prev(nullptr) {}
+    Seat(int r, int s) : row(r), seatNumber(s), isBooked(false), userName(""), next(nullptr), prev(nullptr) {}
 };
 
 class MovieTheater
@@ -22,7 +24,7 @@ private:
     Seat *head;
     int ROWS;
     int COLS;
-    int pricePerSeat = 150; // Add this line
+    int pricePerSeat = 150;
 
 public:
     MovieTheater(int rows, int cols) : head(nullptr), ROWS(rows), COLS(cols)
@@ -125,7 +127,7 @@ public:
     }
 
     // Book a single seat
-    void bookSeat(int row, int seat)
+    void bookSeat(int row, int seat, const string &name)
     {
         Seat *selectedSeat = findSeat(row, seat);
         if (selectedSeat == nullptr)
@@ -135,72 +137,52 @@ public:
         }
         if (selectedSeat->isBooked)
         {
-            cout << "Sorry, seat (" << row << ", " << seat << ") is already booked." << endl;
+            cout << "Sorry, seat (" << row << ", " << seat << ") is already booked by " << selectedSeat->userName << "." << endl;
         }
         else
         {
             selectedSeat->isBooked = true;
-            cout << "Successfully booked seat (" << row << ", " << seat << ")." << endl;
-            cout << "Total price: " << pricePerSeat << endl; // Show price
+            selectedSeat->userName = name;
+            cout << "Successfully booked seat (" << row << ", " << seat << ") for " << name << "." << endl;
+            cout << "Total price: " << pricePerSeat << endl;
         }
     }
 
     // Book multiple seats
-    void bookMultipleSeats(int startRow, int startSeat, int numSeats)
+    void bookMultipleSeats(int startRow, int startSeat, int numSeats, string name)
     {
-        if (numSeats <= 0)
+        vector<Seat *> bookedSeats;
+        for (int i = 0; i < numSeats; ++i)
         {
-            cout << "Number of seats must be positive." << endl;
-            return;
-        }
-
-        Seat *current = findSeat(startRow, startSeat);
-        if (current == nullptr)
-        {
-            cout << "Invalid starting position. Please try again." << endl;
-            return;
-        }
-
-        vector<pair<int, int>> bookedSeats;
-        int seatsBooked = 0;
-        Seat *startNode = current;
-
-        // Traverse the list from the starting point
-        for (int i = 0; i < ROWS * COLS && seatsBooked < numSeats; ++i)
-        {
-            if (!current->isBooked)
+            int row = startRow;
+            int seat = startSeat + i;
+            Seat *current = findSeat(row, seat);
+            if (current && !current->isBooked)
             {
                 current->isBooked = true;
-                bookedSeats.push_back({current->row, current->seatNumber});
-                seatsBooked++;
-            }
-            current = current->next;
-            // Check if we have traversed the entire list without finding enough seats
-            if (current == startNode && seatsBooked < numSeats)
-            {
-                cout << "Cannot book " << numSeats << " seats. Only " << seatsBooked << " seats were available." << endl;
-                return;
+                current->userName = name;
+                bookedSeats.push_back(current);
             }
         }
-
-        if (seatsBooked == numSeats)
+        if (!bookedSeats.empty())
         {
-            cout << "Successfully booked " << seatsBooked << " seats:" << endl;
+            cout << "Successfully booked seats:" << endl;
             for (const auto &seat : bookedSeats)
             {
-                cout << "  (" << seat.first << ", " << seat.second << ")";
+                cout << "  (" << seat->row << ", " << seat->seatNumber << ")";
             }
             cout << endl;
-            cout << "Total price: " << pricePerSeat * seatsBooked << endl; // Show total price
+            int seatsBooked = bookedSeats.size();
+            cout << "Total price: " << pricePerSeat * seatsBooked << endl;
         }
         else
         {
-            cout << "Cannot book " << numSeats << " seats. Only " << seatsBooked << " seats were available." << endl;
+            cout << "No seats were booked. Please check availability." << endl;
         }
     }
 
     // Cancel a single seat booking
-    void cancelBooking(int row, int seat)
+    void cancelBooking(int row, int seat, const string &name)
     {
         Seat *selectedSeat = findSeat(row, seat);
         if (selectedSeat == nullptr)
@@ -212,63 +194,46 @@ public:
         {
             cout << "This seat is not currently booked. Nothing to cancel." << endl;
         }
+        else if (selectedSeat->userName != name)
+        {
+            cout << "This seat is booked by " << selectedSeat->userName << ". Only they can cancel." << endl;
+        }
         else
         {
             selectedSeat->isBooked = false;
-            cout << "Booking for seat (" << row << ", " << seat << ") has been successfully canceled." << endl;
+            selectedSeat->userName = "";
+            cout << "Booking for seat (" << row << ", " << seat << ") has been successfully canceled for " << name << "." << endl;
         }
     }
 
     // Cancel multiple seat bookings
-    void cancelMultipleSeats(int startRow, int startSeat, int numSeats)
+    void cancelMultipleSeats(int startRow, int startSeat, int numSeats, string name)
     {
-        if (numSeats <= 0)
+        vector<Seat *> cancelledSeats;
+        for (int i = 0; i < numSeats; ++i)
         {
-            cout << "Number of seats must be positive." << endl;
-            return;
-        }
-
-        Seat *current = findSeat(startRow, startSeat);
-        if (current == nullptr)
-        {
-            cout << "Invalid starting position. Please try again." << endl;
-            return;
-        }
-
-        vector<pair<int, int>> cancelledSeats;
-        int seatsCancelled = 0;
-        Seat *startNode = current;
-
-        // Traverse the list from the starting point
-        for (int i = 0; i < ROWS * COLS && seatsCancelled < numSeats; ++i)
-        {
-            if (current->isBooked)
+            int row = startRow;
+            int seat = startSeat + i;
+            Seat *current = findSeat(row, seat);
+            if (current && current->isBooked && current->userName == name)
             {
                 current->isBooked = false;
-                cancelledSeats.push_back({current->row, current->seatNumber});
-                seatsCancelled++;
-            }
-            current = current->next;
-            // Check if we have traversed the entire list without finding enough seats
-            if (current == startNode && seatsCancelled < numSeats)
-            {
-                cout << "Cannot cancel " << numSeats << " seats. Only " << seatsCancelled << " seats were booked." << endl;
-                return;
+                current->userName = "";
+                cancelledSeats.push_back(current);
             }
         }
-
-        if (seatsCancelled == numSeats)
+        if (!cancelledSeats.empty())
         {
-            cout << "Successfully cancelled " << seatsCancelled << " seats:" << endl;
+            cout << "Successfully cancelled seats:" << endl;
             for (const auto &seat : cancelledSeats)
             {
-                cout << "  (" << seat.first << ", " << seat.second << ")";
+                cout << "  (" << seat->row << ", " << seat->seatNumber << ")";
             }
             cout << endl;
         }
         else
         {
-            cout << "Cannot cancel " << numSeats << " seats. Only " << seatsCancelled << " seats were booked." << endl;
+            cout << "No seats were cancelled. Please check the seat numbers and your name." << endl;
         }
     }
 
@@ -312,6 +277,37 @@ bool readInt(int &out)
     return true;
 }
 
+bool isValidName(const string &name)
+{
+    if (name.empty())
+        return false;
+    for (char c : name)
+    {
+        if (!isalpha(c))
+            return false;
+    }
+    return true;
+}
+
+string getConfirmedName()
+{
+    string name;
+    char confirm;
+    do
+    {
+        cout << "Enter your name (alphabets only): ";
+        cin >> name;
+        if (!isValidName(name))
+        {
+            cout << "Invalid name. Please use alphabets only." << endl;
+            continue;
+        }
+        cout << "You entered: " << name << ". Confirm? (y/n): ";
+        cin >> confirm;
+    } while (!isValidName(name) || (confirm != 'y' && confirm != 'Y'));
+    return name;
+}
+
 int main()
 {
     int rows, cols;
@@ -341,6 +337,7 @@ int main()
 
     do
     {
+        string userName = "";
         cout << "\n--- Theater Booking System Menu ---" << endl;
         cout << "1. Display Seating" << endl;
         cout << "2. Book a Single Seat" << endl;
@@ -364,70 +361,62 @@ int main()
             break;
 
         case 2:
+            userName = getConfirmedName();
             cout << "Enter row number: ";
             if (!readInt(row))
                 break;
-
             cout << "Enter seat number: ";
             if (!readInt(seat))
                 break;
-
-            booking_system.bookSeat(row, seat);
+            booking_system.bookSeat(row, seat, userName);
             break;
 
         case 3:
+            userName = getConfirmedName();
             cout << "Enter starting row number: ";
             if (!readInt(row))
                 break;
-
             cout << "Enter starting seat number: ";
             if (!readInt(seat))
                 break;
-
             cout << "Enter number of seats to book: ";
             if (!readInt(numSeats))
                 break;
-
-            booking_system.bookMultipleSeats(row, seat, numSeats);
+            booking_system.bookMultipleSeats(row, seat, numSeats, userName);
             break;
 
         case 4:
+            userName = getConfirmedName();
             cout << "Enter row number: ";
             if (!readInt(row))
                 break;
-
             cout << "Enter seat number: ";
             if (!readInt(seat))
                 break;
-
-            booking_system.cancelBooking(row, seat);
+            booking_system.cancelBooking(row, seat, userName);
             break;
 
         case 5:
+            userName = getConfirmedName();
             cout << "Enter starting row number: ";
             if (!readInt(row))
                 break;
-
             cout << "Enter starting seat number: ";
             if (!readInt(seat))
                 break;
-
             cout << "Enter number of seats to cancel: ";
             if (!readInt(numSeats))
                 break;
-
-            booking_system.cancelMultipleSeats(row, seat, numSeats);
+            booking_system.cancelMultipleSeats(row, seat, numSeats, userName);
             break;
 
         case 6:
             cout << "Enter row number: ";
             if (!readInt(row))
                 break;
-
             cout << "Enter seat number: ";
             if (!readInt(seat))
                 break;
-
             booking_system.checkAvailability(row, seat);
             break;
 
