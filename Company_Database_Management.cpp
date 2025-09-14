@@ -1,144 +1,283 @@
 #include <iostream>
-#include <cstring> // For C-style string functions like strcmp
 #include <string>
+#include <vector>
+#include <limits>
+#include <cctype>
+#include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
-// Class as specified in the manual
-class Dictionary {
-public:
-    // Data Members
-    char name[10];
-    long int phone;
-    bool occupied;
-
-    // Member Functions
-    void init_Table() {
-        strcpy(name, "--");
-        phone = 0;
-        occupied = false;
-    }
-};
-
-class HashTable {
+class TelephoneBook
+{
 private:
-    static const int TABLE_SIZE = 10; // As per the manual's example HT[10]
-    Dictionary HT[TABLE_SIZE];
+    struct Record
+    {
+        string name;
+        unsigned long long phone;
+        bool occupied = false;
+    };
 
-    // Hash Function as specified in the manual
-    int hashFunction(const string &key) {
+    static const int TABLE_SIZE = 100;
+    Record table[TABLE_SIZE];
+    int count;
+
+    int hash(const string &key) const
+    {
         int sum = 0;
-        for (char ch : key) {
-            sum += tolower(ch);
+        for (char c : key)
+        {
+            sum += c;
         }
         return sum % TABLE_SIZE;
     }
 
-public:
-    // To insert default values in Hash Table
-    void init_Table() {
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            HT[i].init_Table();
-        }
-        cout << "Hash Table initialized successfully.\n";
-    }
-
-    // To insert records in Hash Table
-    bool insertRecords(const string &client_name, long int telephone) {
-        int index = hashFunction(client_name);
-
-        for (int i = 0; i < TABLE_SIZE; i++) {
+    int findIndex(const string &name) const
+    {
+        int index = hash(name);
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
             int tryIndex = (index + i) % TABLE_SIZE;
-
-            if (!HT[tryIndex].occupied) {
-                strcpy(HT[tryIndex].name, client_name.c_str());
-                HT[tryIndex].phone = telephone;
-                HT[tryIndex].occupied = true;
-                cout << "Client inserted at index " << tryIndex << ".\n";
-                return true;
+            if (table[tryIndex].occupied && table[tryIndex].name == name)
+            {
+                return tryIndex;
+            }
+            if (!table[tryIndex].occupied)
+            {
+                break;
             }
         }
-        cout << "Hash Table is full! Cannot insert " << client_name << endl;
+        return -1;
+    }
+
+    bool isValidName(const string &name) const
+    {
+        if (name.empty() || name.length() > 50)
+            return false;
+        return all_of(name.begin(), name.end(), [](char c)
+                      { return isalpha(c) || isspace(c); });
+    }
+
+public:
+    TelephoneBook() : count(0) {}
+
+    bool insertRecord(const string &name, unsigned long long phone)
+    {
+        if (!isValidName(name))
+        {
+            cout << "Error: Invalid name. Use only letters and spaces, max 50 characters.\n";
+            return false;
+        }
+        if (!isValidPhoneNumber(phone))
+        {
+            cout << "Error: Invalid phone number. Must be exactly 10 digits.\n";
+            return false;
+        }
+        if (count >= TABLE_SIZE)
+        {
+            cout << "Error: Telephone book is full.\n";
+            return false;
+        }
+
+        int index = hash(name);
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
+            int tryIndex = (index + i) % TABLE_SIZE;
+            if (!table[tryIndex].occupied)
+            {
+                table[tryIndex] = {name, phone, true};
+                count++;
+                cout << "Record for " << name << " inserted successfully.\n";
+                return true;
+            }
+            if (table[tryIndex].name == name)
+            {
+                cout << "Error: A record with this name already exists.\n";
+                return false;
+            }
+        }
+        cout << "Error: Could not insert record.\n";
         return false;
     }
 
-    // To search a client's telephone in Hash Table
-    long int look_up(const string &target_name) {
-        int index = hashFunction(target_name);
-
-        for (int i = 0; i < TABLE_SIZE; i++) {
+    bool lookUp(const string &name)
+    {
+        if (name.empty())
+        {
+            cout << "Error: Name cannot be empty.\n";
+            return false;
+        }
+        int index = hash(name);
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
             int tryIndex = (index + i) % TABLE_SIZE;
-            if (HT[tryIndex].occupied && strcmp(HT[tryIndex].name, target_name.c_str()) == 0) {
-                return HT[tryIndex].phone;
+            if (table[tryIndex].occupied && table[tryIndex].name == name)
+            {
+                cout << "Phone number for " << name << " is " << table[tryIndex].phone << ".\n";
+                return true;
             }
-            if (!HT[tryIndex].occupied && HT[tryIndex].phone == 0) {
-                // This condition assumes empty slots mean the end of the probe chain.
-                // It works for initial insertion but lazy deletion requires a more complex check.
-                return -1;
+            if (!table[tryIndex].occupied)
+            {
+                break;
             }
         }
-        return -1; // Not found
+        cout << "No record found for " << name << ".\n";
+        return false;
     }
 
-    // To display Hash Table
-    void display_Table() {
-        cout << "\n--- Hash Table Contents ---\n";
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            cout << "Index " << i << ": ";
-            if (HT[i].occupied) {
-                cout << "Name = " << HT[i].name << ", Phone = " << HT[i].phone << endl;
-            } else {
-                cout << "Empty\n";
+    bool deleteRecord(const string &name)
+    {
+        if (name.empty())
+        {
+            cout << "Error: Name cannot be empty.\n";
+            return false;
+        }
+        int index = hash(name);
+        for (int i = 0; i < TABLE_SIZE; i++)
+        {
+            int tryIndex = (index + i) % TABLE_SIZE;
+            if (table[tryIndex].occupied && table[tryIndex].name == name)
+            {
+                table[tryIndex].occupied = false;
+                count--;
+                cout << "Record for " << name << " deleted successfully.\n";
+                return true;
+            }
+            if (!table[tryIndex].occupied)
+            {
+                break;
             }
         }
+        cout << "No record found for " << name << ".\n";
+        return false;
+    }
+
+    void displayAll()
+    {
+        cout << "\n--- Telephone Book Contents ---\n";
+        bool empty = true;
+        for (const auto &record : table)
+        {
+            if (record.occupied)
+            {
+                cout << "Name: " << record.name << ", Phone: " << record.phone << "\n";
+                empty = false;
+            }
+        }
+        if (empty)
+        {
+            cout << "The telephone book is empty.\n";
+        }
+        cout << "Total records: " << count << "\n";
+    }
+
+    bool isValidPhoneNumber(unsigned long long phone) const
+    {
+        return phone > 0 && to_string(phone).length() == 10;
+    }
+
+    bool isValidPhoneNumber(const string &phone) const
+    {
+        if (phone.length() != 10)
+            return false;
+        return all_of(phone.begin(), phone.end(), ::isdigit);
     }
 };
 
-int main() {
-    HashTable ht;
-    ht.init_Table();
+void clearInputBuffer()
+{
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
 
+string getValidName()
+{
+    string name;
+    do
+    {
+        cout << "Enter name (letters and spaces only, max 50 characters): ";
+        getline(cin, name);
+        if (!all_of(name.begin(), name.end(), [](char c)
+                    { return isalpha(c) || isspace(c); }))
+        {
+            cout << "Invalid name. Use only letters and spaces.\n";
+        }
+        else if (name.length() > 50)
+        {
+            cout << "Name too long. Maximum 50 characters.\n";
+        }
+    } while (!all_of(name.begin(), name.end(), [](char c)
+                     { return isalpha(c) || isspace(c); }) ||
+             name.length() > 50);
+    return name;
+}
+
+int main()
+{
+    TelephoneBook book;
     int choice;
     string name;
-    long int phone;
+    string phone;
 
-    do {
-        cout << "\n===== TELEPHONE BOOK MENU =====\n";
-        cout << "1. Insert a client record\n";
-        cout << "2. Look-up a client's phone number\n";
-        cout << "3. Display Hash Table\n";
-        cout << "4. Exit\n";
-        cout << "Enter your choice: ";
-        cin >> choice;
+    do
+    {
+        cout << "\n===== TELEPHONE BOOK MENU =====\n"
+             << "1. Insert a record\n"
+             << "2. Look-up a phone number\n"
+             << "3. Delete a record\n"
+             << "4. Display all records\n"
+             << "5. Exit\n"
+             << "Enter your choice: ";
 
-        switch (choice) {
-            case 1:
-                cout << "Enter client name: ";
-                cin >> name;
-                cout << "Enter telephone number: ";
-                cin >> phone;
-                ht.insertRecords(name, phone);
-                break;
-            case 2:
-                cout << "Enter client name to search: ";
-                cin >> name;
-                phone = ht.look_up(name);
-                if (phone != -1) {
-                    cout << "The phone number for " << name << " is " << phone << ".\n";
-                } else {
-                    cout << "Client not found.\n";
-                }
-                break;
-            case 3:
-                ht.display_Table();
-                break;
-            case 4:
-                cout << "Exiting program. Goodbye!\n";
-                break;
-            default:
-                cout << "Invalid choice. Please try again.\n";
+        if (!(cin >> choice))
+        {
+            cout << "Invalid input. Please enter a number.\n";
+            clearInputBuffer();
+            continue;
         }
-    } while (choice != 4);
-    cout<<string(50,' ')<<"Thankyou for using Company Telephone Database "<<endl;
+
+        clearInputBuffer();
+
+        switch (choice)
+        {
+        case 1:
+            name = getValidName();
+            cout << "Enter phone number (10 digits): ";
+            getline(cin, phone);
+            if (!book.isValidPhoneNumber(phone))
+            {
+                cout << "Invalid phone number. Must be exactly 10 digits.\n";
+                break;
+            }
+            try
+            {
+                unsigned long long phoneNum = stoull(phone);
+                book.insertRecord(name, phoneNum);
+            }
+            catch (const exception &e)
+            {
+                cout << "Error converting phone number: " << e.what() << endl;
+            }
+            break;
+        case 2:
+            name = getValidName();
+            book.lookUp(name);
+            break;
+        case 3:
+            name = getValidName();
+            book.deleteRecord(name);
+            break;
+        case 4:
+            book.displayAll();
+            break;
+        case 5:
+            cout << "Exiting program. Goodbye!\n";
+            break;
+        default:
+            cout << "Invalid choice. Please try again.\n";
+        }
+    } while (choice != 5);
+
+    cout << string(50, ' ') << "Thank you for using the Telephone Book\n";
     return 0;
 }
