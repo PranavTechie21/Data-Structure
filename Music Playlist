@@ -1,0 +1,224 @@
+#include <iostream>
+#include <cstring>
+
+using namespace std;
+
+// Class as per the manual's specification for a node
+class Media {
+public:
+    int music_id;
+    char music_title[10];
+    int music_duration;
+    Media* next;
+};
+
+// Class to handle SCLL operations
+class Playlist {
+private:
+    Media* head;
+
+public:
+    Playlist() {
+        head = nullptr;
+    }
+
+    // Insert a new song at the end of the circular list
+    void insert_songs() {
+        Media* newNode = new Media;
+        cout << "Enter Music ID: ";
+        cin >> newNode->music_id;
+        cout << "Enter Music Title (max 9 chars): ";
+        cin >> newNode->music_title;
+        cout << "Enter Music Duration in seconds: ";
+        cin >> newNode->music_duration;
+
+        if (head == nullptr) {
+            head = newNode;
+            newNode->next = head; // Point to itself to form a circular list
+        } else {
+            Media* last = head;
+            while (last->next != head) {
+                last = last->next;
+            }
+            last->next = newNode;
+            newNode->next = head;
+        }
+        cout << "Song inserted successfully.\n";
+    }
+
+    // Display songs
+    void display_songs() {
+        if (head == nullptr) {
+            cout << "No songs to display." << endl;
+            return;
+        }
+
+        Media* temp = head;
+        cout << "\n--- Songs List ---\n";
+        do {
+            cout << "ID: " << temp->music_id
+                 << ", Title: " << temp->music_title
+                 << ", Duration: " << temp->music_duration << " seconds" << endl;
+            temp = temp->next;
+        } while (temp != head);
+    }
+
+    // Delete a song by its ID
+    void delete_songs(int id) {
+        if (head == nullptr) {
+            cout << "Playlist is empty.\n";
+            return;
+        }
+
+        Media* curr = head;
+        Media* prev = nullptr;
+
+        // Find the node to delete
+        do {
+            if (curr->music_id == id) {
+                break;
+            }
+            prev = curr;
+            curr = curr->next;
+        } while (curr != head);
+
+        // If the node was not found
+        if (curr->music_id != id) {
+            cout << "Song with ID " << id << " not found.\n";
+            return;
+        }
+
+        // Deleting the only node
+        if (curr == head && curr->next == head) {
+            delete head;
+            head = nullptr;
+            cout << "Last song deleted from the playlist.\n";
+            return;
+        }
+
+        // Deleting the head node
+        if (curr == head) {
+            prev = head;
+            while (prev->next != head) {
+                prev = prev->next;
+            }
+            head = head->next;
+            prev->next = head;
+            delete curr;
+            cout << "Head song with ID " << id << " deleted.\n";
+            return;
+        }
+        // Deleting a middle or last node
+        prev->next = curr->next;
+        delete curr;
+        cout << "Song with ID " << id << " deleted.\n";
+    }
+
+    // Count the total number of songs
+    void count_songs() {
+        if (head == nullptr) {
+            cout << "The number of songs is: 0\n";
+            return;
+        }
+        int count = 0;
+        Media* temp = head;
+        do {
+            count++;
+            temp = temp->next;
+        } while (temp != head);
+        cout << "\nThe number of songs is: " << count << "\n";
+    }
+
+    // Sort songs by duration using Bubble Sort
+    void sort_asperDuration() {
+        if (head == nullptr || head->next == head) {
+            return;
+        }
+
+        bool swapped;
+        Media* current;
+        Media* last = nullptr;
+        
+        do {
+            swapped = false;
+            current = head;
+            
+            while (current->next != last) {
+                if (current->music_duration > current->next->music_duration) {
+                    // Swap data
+                    swap(current->music_id, current->next->music_id);
+                    swap(current->music_title, current->next->music_title);
+                    swap(current->music_duration, current->next->music_duration);
+                    swapped = true;
+                }
+                current = current->next;
+            }
+            last = current;
+        } while (swapped);
+        cout << "Songs sorted by duration successfully.\n";
+    }
+
+    // Play songs in a continuous looping fashion
+    void play_inLoop() {
+        if (head == nullptr) {
+            cout << "No songs to play.\n";
+            return;
+        }
+        cout << "\nPlaying songs in a continuous loop... (Press Ctrl+C to stop)\n";
+        Media* temp = head;
+        while (true) {
+            cout << "Playing: " << temp->music_title << " [" << temp->music_duration << " seconds]" << endl;
+            temp = temp->next;
+        }
+    }
+};
+
+int main() {
+    Playlist playlist;
+    int choice;
+    
+    do {
+        cout << "\n--- Music Playlist Menu ---\n";
+        cout << "1. Insert Songs\n";
+        cout << "2. Display Songs\n";
+        cout << "3. Delete Song by ID\n";
+        cout << "4. Count Songs\n";
+        cout << "5. Sort Songs by Duration\n";
+        cout << "6. Play in Loop\n";
+        cout << "7. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                playlist.insert_songs();
+                break;
+            case 2:
+                playlist.display_songs();
+                break;
+            case 3: {
+                int id;
+                cout << "Enter Music ID to delete: ";
+                cin >> id;
+                playlist.delete_songs(id);
+                break;
+            }
+            case 4:
+                playlist.count_songs();
+                break;
+            case 5:
+                playlist.sort_asperDuration();
+                break;
+            case 6:
+                playlist.play_inLoop();
+                break;
+            case 7:
+                cout << "Exiting the program. Goodbye!\n";
+                break;
+            default:
+                cout << "Invalid choice. Please try again.\n";
+        }
+    } while (choice != 7);
+
+    return 0;
+}
