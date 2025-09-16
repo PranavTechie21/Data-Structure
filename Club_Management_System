@@ -1,0 +1,235 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+struct Node
+{
+    string prn;
+    string name;
+    Node *prev;
+    Node *next;
+
+    Node(string p, string n) : prn(p), name(n), prev(nullptr), next(nullptr) {}
+};
+
+class Club
+{
+private:
+    Node *head;
+    Node *tail;
+
+public:
+    Club() : head(nullptr), tail(nullptr) {}
+
+    ~Club()
+    {
+        Node *current = head;
+        while (current != nullptr)
+        {
+            Node *next_node = current->next;
+            delete current;
+            current = next_node;
+        }
+    }
+
+    void addMember()
+    {
+        string prn, name;
+        cout << "Enter student PRN: ";
+        cin >> prn;
+        cout << "Enter student name: ";
+        cin.ignore();
+        getline(cin, name);
+
+        Node *newNode = new Node(prn, name);
+
+        if (head == nullptr)
+        {
+            head = newNode;
+            tail = newNode;
+            cout << "Member added as President and Secretary." << endl;
+        }
+        else if (head == tail)
+        {
+            head->next = newNode;
+            newNode->prev = head;
+            tail = newNode;
+            cout << "Member added as Secretary." << endl;
+        }
+        else
+        {
+            Node *current_secretary = tail;
+            newNode->prev = current_secretary->prev;
+            newNode->next = current_secretary;
+            current_secretary->prev->next = newNode;
+            current_secretary->prev = newNode;
+            cout << "Member added successfully." << endl;
+        }
+    }
+
+    void showMembers()
+    {
+        if (head == nullptr)
+        {
+            cout << "Club has no members yet." << endl;
+            return;
+        }
+
+        Node *current = head;
+        cout << "\n--- Club Members ---" << endl;
+        cout << "President: " << head->name << " (PRN: " << head->prn << ")" << endl;
+        current = head->next;
+        if (current != nullptr && current != tail)
+        {
+            cout << "Other Members:" << endl;
+        }
+        while (current != nullptr && current != tail)
+        {
+            cout << "  - " << current->name << " (PRN: " << current->prn << ")" << endl;
+            current = current->next;
+        }
+        if (tail != head)
+        {
+            cout << "Secretary: " << tail->name << " (PRN: " << tail->prn << ")" << endl;
+        }
+        cout << "--------------------" << endl;
+    }
+
+    void deleteMember(string prnToDelete)
+    {
+        if (head == nullptr)
+        {
+            cout << "Club is empty. Cannot delete." << endl;
+            return;
+        }
+        if (prnToDelete == head->prn)
+        {
+            cout << "Cannot delete the President. Only President can resign." << endl;
+            return;
+        }
+        Node *current = head->next;
+        while (current != nullptr)
+        {
+            if (current->prn == prnToDelete)
+            {
+                if (current == tail)
+                {
+                    tail = current->prev;
+                    tail->next = nullptr;
+                }
+                else
+                {
+                    current->prev->next = current->next;
+                    current->next->prev = current->prev;
+                }
+                delete current;
+                cout << "Member with PRN " << prnToDelete << " deleted successfully." << endl;
+                return;
+            }
+            current = current->next;
+        }
+        cout << "Member with PRN " << prnToDelete << " not found." << endl;
+    }
+
+    int countMembers()
+    {
+        int count = 0;
+        Node *current = head;
+        while (current != nullptr)
+        {
+            count++;
+            current = current->next;
+        }
+        return count;
+    }
+
+    void concatenate(Club &otherClub)
+    {
+        if (otherClub.head == nullptr)
+        {
+            cout << "The other club's list is empty. Nothing to concatenate." << endl;
+            return;
+        }
+
+        if (head == nullptr)
+        {
+            head = otherClub.head;
+            tail = otherClub.tail;
+        }
+        else
+        {
+            Node *current = head->next;
+            while (current != tail && current != nullptr)
+            {
+                current = current->next;
+            }
+            if (current == tail)
+            {
+                tail->prev->next = otherClub.head;
+                otherClub.head->prev = tail->prev;
+                tail = otherClub.tail;
+            }
+        }
+
+        otherClub.head = nullptr;
+        otherClub.tail = nullptr;
+
+        cout << "Clubs concatenated successfully." << endl;
+    }
+};
+
+int main()
+{
+    Club technoFunClub;
+    Club otherClub;
+    int choice;
+    string prn;
+
+    while (choice != 6)
+    {
+        cout << "\n--- Techno-Fun Club Menu ---" << endl;
+        cout << "1. Add a member" << endl;
+        cout << "2. Show all members" << endl;
+        cout << "3. Delete a member" << endl;
+        cout << "4. Compute total number of members" << endl;
+        cout << "5. Concatenate with another club" << endl;
+        cout << "6. Exit" << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice)
+        {
+        case 1:
+            technoFunClub.addMember();
+            break;
+        case 2:
+            technoFunClub.showMembers();
+            break;
+        case 3:
+            cout << "Enter PRN of member to delete: ";
+            cin >> prn;
+            technoFunClub.deleteMember(prn);
+            break;
+        case 4:
+            cout << "Total members: " << technoFunClub.countMembers() << endl;
+            break;
+        case 5:
+            cout << "Building a sample second club list to concatenate..." << endl;
+            otherClub.addMember();
+            technoFunClub.concatenate(otherClub);
+            break;
+        case 6:
+            cout << "Exiting program. " << endl;
+            break;
+        default:
+            cout << "Invalid choice. Please enter a number between 1 and 6." << endl;
+            break;
+        }
+    }
+    cout << string(80, '-') << endl;
+    cout << "Thank you for using the Techno-Fun Club Management System!" << endl;
+    cout << string(80, '-') << endl;
+    return 0;
+}
