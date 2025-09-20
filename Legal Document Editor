@@ -1,0 +1,175 @@
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+struct Node
+{
+    string data; // name like S1, P1, SP1
+    string type; // "Section", "Subsection", "Paragraph", "Subparagraph"
+    Node *down;  // first child
+    Node *next;  // next sibling
+    Node(const string &d, const string &t) : data(d), type(t), down(nullptr), next(nullptr) {}
+};
+
+// Append a sibling at the end of the sibling chain whose head is `head` (may be null)
+void insertSibling(Node *&head, const string &data, const string &type)
+{
+    if (head == nullptr)
+    {
+        head = new Node(data, type);
+        return;
+    }
+    Node *cur = head;
+    while (cur->next != nullptr)
+        cur = cur->next;
+    cur->next = new Node(data, type);
+}
+
+// Append a child under `parent`
+void insertChild(Node *parent, const string &data, const string &type)
+{
+    if (parent == nullptr)
+        return;
+    if (parent->down == nullptr)
+        parent->down = new Node(data, type);
+    else
+        insertSibling(parent->down, data, type);
+}
+
+// Pretty print with indentation
+void display(const Node *head, int indent = 0)
+{
+    const Node *cur = head;
+    while (cur != nullptr)
+    {
+        for (int i = 0; i < indent; ++i)
+            cout << "  ";
+        cout << cur->type << ": " << cur->data << '\n';
+        if (cur->down)
+            display(cur->down, indent + 1);
+        cur = cur->next;
+    }
+}
+
+// Get the last node in a sibling chain
+Node *getLastSibling(Node *head)
+{
+    if (head == nullptr)
+        return nullptr;
+    Node *cur = head;
+    while (cur->next != nullptr)
+    {
+        cur = cur->next;
+    }
+    return cur;
+}
+
+int main()
+{
+    Node *document = nullptr;
+    Node *lastSection = nullptr;
+    Node *lastSubsection = nullptr;
+    Node *lastParagraph = nullptr;
+
+    int choice = 0;
+    string text;
+
+    do
+    {
+        cout << "\n--- Legal Document Menu ---\n";
+        cout << "1. Enter Section\n";
+        cout << "2. Enter Subsection (under last Section)\n";
+        cout << "3. Enter Paragraph (under last Subsection)\n";
+        cout << "4. Enter Subparagraph (under last Paragraph)\n";
+        cout << "5. Display Document\n";
+        cout << "6. Exit\n";
+
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice)
+        {
+        case 1:
+        {
+            cout << "Enter Section name (e.g., S1): ";
+            cin >> text;
+            insertSibling(document, text, "Section");
+            lastSection = getLastSibling(document);
+            lastSubsection = nullptr;
+            lastParagraph = nullptr;
+            cout << "Added Section '" << text << "'.\n";
+            break;
+        }
+        case 2:
+        {
+            if (lastSection == nullptr)
+            {
+                cout << "Error: Add a Section before adding a Subsection!\n";
+            }
+            else
+            {
+                cout << "Enter Subsection name (e.g., P1): ";
+                cin >> text;
+                insertChild(lastSection, text, "Subsection");
+                lastSubsection = getLastSibling(lastSection->down);
+                lastParagraph = nullptr;
+                cout << "Added Subsection '" << text << "' under Section '" << lastSection->data << "'.\n";
+            }
+            break;
+        }
+        case 3:
+        {
+            if (lastSubsection == nullptr)
+            {
+                cout << "Error: Add a Subsection before adding a Paragraph!\n";
+            }
+            else
+            {
+                cout << "Enter Paragraph name (e.g., P1 or Para1): ";
+                cin >> text;
+                insertChild(lastSubsection, text, "Paragraph");
+                lastParagraph = getLastSibling(lastSubsection->down);
+                cout << "Added Paragraph '" << text << "' under Subsection '" << lastSubsection->data << "'.\n";
+            }
+            break;
+        }
+        case 4:
+        {
+            if (lastParagraph == nullptr)
+            {
+                cout << "Error: Add a Paragraph before adding a Subparagraph!\n";
+            }
+            else
+            {
+                cout << "Enter Subparagraph name (e.g., SP1): ";
+                cin >> text;
+                insertChild(lastParagraph, text, "Subparagraph");
+                cout << "Added Subparagraph '" << text << "' under Paragraph '" << lastParagraph->data << "'.\n";
+            }
+            break;
+        }
+        case 5:
+        {
+            if (document == nullptr)
+                cout << "Document is empty.\n";
+            else
+            {
+                cout << "\n--- Document Structure ---\n";
+                display(document);
+            }
+            break;
+        }
+        case 6:
+        {
+            cout << "Exiting...\n";
+            break;
+        }
+        default:
+            cout << "Invalid choice! Please select 1-6.\n";
+        }
+    } while (choice != 6);
+    cout<<string(30,' ')<<"Thank you for using the Legal Document Editor!"<<endl;
+    return 0;
+}
+is this code aligned with the problem
