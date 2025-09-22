@@ -1,0 +1,55 @@
+#include <iostream>
+#include <string>
+#include <stack>
+
+using namespace std;
+
+// This function checks if a given expression is well-parenthesized.
+// It uses a stack to match opening and closing brackets.
+bool isWellParenthesized(const string& expr) {
+    stack<char> s;
+    for (char ch : expr) {
+        // If the character is an opening bracket, push it onto the stack.
+        if (ch == '(' || ch == '[' || ch == '{') {
+            s.push(ch);
+        }
+        // If the character is a closing bracket, check for a match.
+        else if (ch == ')' || ch == ']' || ch == '}') {
+            // If the stack is empty, it means there is a closing bracket
+            // with no corresponding opening bracket.
+            if (s.empty()) {
+                return false;
+            }
+            char top = s.top();
+            s.pop();
+
+            // Check if the current closing bracket matches the top of the stack.
+            // If not, the parentheses are not well-matched.
+            if ((ch == ')' && top != '(') ||
+                (ch == ']' && top != '[') ||
+                (ch == '}' && top != '{')) {
+                return false;
+            }
+        }
+    }
+    // After iterating through the entire expression, if the stack is empty,
+    // all opening brackets have been correctly matched.
+    return s.empty();
+}
+
+int main() {
+    string expression;
+
+    cout << "--- Well-Parenthesized Expression Checker ---" << endl;
+    cout << "Enter an expression: ";
+    // Read the entire line, including spaces.
+    getline(cin, expression);
+
+    if (isWellParenthesized(expression)) {
+        cout << "The expression is well-parenthesized." << endl;
+    } else {
+        cout << "The expression is NOT well-parenthesized." << endl;
+    }
+
+    return 0;
+}
