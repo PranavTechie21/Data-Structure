@@ -1,55 +1,272 @@
 #include <iostream>
 #include <string>
 #include <stack>
+#include <limits>
+#include <stdexcept>
+#include <cctype>
 
 using namespace std;
 
-// This function checks if a given expression is well-parenthesized.
-// It uses a stack to match opening and closing brackets.
-bool isWellParenthesized(const string& expr) {
-    stack<char> s;
-    for (char ch : expr) {
-        // If the character is an opening bracket, push it onto the stack.
-        if (ch == '(' || ch == '[' || ch == '{') {
-            s.push(ch);
-        }
-        // If the character is a closing bracket, check for a match.
-        else if (ch == ')' || ch == ']' || ch == '}') {
-            // If the stack is empty, it means there is a closing bracket
-            // with no corresponding opening bracket.
-            if (s.empty()) {
-                return false;
-            }
-            char top = s.top();
-            s.pop();
+// Constants for configuration and limits
+const size_t MAX_INPUT_LENGTH = 1000000;  // 1MB limit to prevent memory issues
+const size_t MAX_STACK_DEPTH = 100000;    // Prevent stack overflow
 
-            // Check if the current closing bracket matches the top of the stack.
-            // If not, the parentheses are not well-matched.
-            if ((ch == ')' && top != '(') ||
-                (ch == ']' && top != '[') ||
-                (ch == '}' && top != '{')) {
-                return false;
-            }
+// Custom exception classes for better error handling
+class InputTooLargeException : public runtime_error {
+public:
+    InputTooLargeException(const string& msg) : runtime_error(msg) {}
+};
+
+class StackOverflowException : public runtime_error {
+public:
+    StackOverflowException(const string& msg) : runtime_error(msg) {}
+};
+
+class InvalidInputException : public runtime_error {
+public:
+    InvalidInputException(const string& msg) : runtime_error(msg) {}
+};
+
+// Enhanced function to validate input string
+bool validateInput(const string& expr) {
+    // Check for empty input (valid case)
+    if (expr.empty()) {
+        return true;
+    }
+    
+    // Check for maximum length to prevent memory issues
+    if (expr.length() > MAX_INPUT_LENGTH) {
+        throw InputTooLargeException("Input string exceeds maximum allowed length of " + 
+                                   to_string(MAX_INPUT_LENGTH) + " characters");
+    }
+    
+    // Check for null characters or other control characters that might cause issues
+    for (size_t i = 0; i < expr.length(); ++i) {
+        char ch = expr[i];
+        // Allow printable characters, spaces, tabs, and newlines
+        if (ch != '\0' && (isprint(ch) || ch == ' ' || ch == '\t' || ch == '\n')) {
+            continue;
+        } else if (ch == '\0') {
+            throw InvalidInputException("Input contains null character at position " + to_string(i));
+        } else {
+            throw InvalidInputException("Input contains invalid control character (ASCII " + 
+                                      to_string(static_cast<unsigned char>(ch)) + 
+                                      ") at position " + to_string(i));
         }
     }
-    // After iterating through the entire expression, if the stack is empty,
-    // all opening brackets have been correctly matched.
-    return s.empty();
+    
+    return true;
+}
+
+// Enhanced function to check if brackets match
+bool areBracketsMatching(char opening, char closing) {
+    return ((opening == '(' && closing == ')') ||
+            (opening == '[' && closing == ']') ||
+            (opening == '{' && closing == '}'));
+}
+
+// Enhanced function to check if a character is an opening bracket
+bool isOpeningBracket(char ch) {
+    return (ch == '(' || ch == '[' || ch == '{');
+}
+
+// Enhanced function to check if a character is a closing bracket
+bool isClosingBracket(char ch) {
+    return (ch == ')' || ch == ']' || ch == '}');
+}
+
+// This function checks if a given expression is well-parenthesized.
+// It uses a stack to match opening and closing brackets with comprehensive error handling.
+bool isWellParenthesized(const string& expr) {
+    try {
+        // Validate input first
+        if (!validateInput(expr)) {
+            return false;
+        }
+        
+        // Handle empty string case (considered well-parenthesized)
+        if (expr.empty()) {
+            return true;
+        }
+        
+        stack<char> bracketStack;
+        size_t stackDepth = 0;
+        
+        // Iterate through each character in the expression
+        for (size_t i = 0; i < expr.length(); ++i) {
+            char ch = expr[i];
+            
+            // If the character is an opening bracket, push it onto the stack
+            if (isOpeningBracket(ch)) {
+                // Check for potential stack overflow
+                if (stackDepth >= MAX_STACK_DEPTH) {
+                    throw StackOverflowException("Maximum nesting depth of " + 
+                                               to_string(MAX_STACK_DEPTH) + 
+                                               " exceeded at position " + to_string(i));
+                }
+                
+                bracketStack.push(ch);
+                stackDepth++;
+            }
+            // If the character is a closing bracket, check for a match
+            else if (isClosingBracket(ch)) {
+                // If the stack is empty, there's a closing bracket with no corresponding opening bracket
+                if (bracketStack.empty()) {
+                    return false;
+                }
+                
+                char topBracket = bracketStack.top();
+                bracketStack.pop();
+                stackDepth--;
+                
+                // Check if the current closing bracket matches the top of the stack
+                if (!areBracketsMatching(topBracket, ch)) {
+                    return false;
+                }
+            }
+            // For non-bracket characters, we simply ignore them (they don't affect parenthesization)
+        }
+        
+        // After processing all characters, if the stack is empty, all brackets are properly matched
+        return bracketStack.empty();
+        
+    } catch (const exception& e) {
+        // Re-throw the exception to be handled by the caller
+        throw;
+    }
+}
+
+// Function to safely read input with error handling
+bool safeGetline(string& input) {
+    try {
+        // Clear any error flags
+        cin.clear();
+        
+        // Check if input stream is in a good state
+        if (!cin.good()) {
+            throw InvalidInputException("Input stream is in an invalid state");
+        }
+        
+        // Read the input line
+        if (!getline(cin, input)) {
+            // Check for different failure conditions
+            if (cin.eof()) {
+                throw InvalidInputException("End of file reached unexpectedly");
+            } else if (cin.fail()) {
+                throw InvalidInputException("Input operation failed");
+            } else if (cin.bad()) {
+                throw InvalidInputException("Input stream encountered a serious error");
+            }
+            return false;
+        }
+        
+        return true;
+        
+    } catch (const exception& e) {
+        throw;
+    }
+}
+
+// Function to display help information
+void displayHelp() {
+    cout << "\n=== HELP ===" << endl;
+    cout << "This program checks if brackets in an expression are well-parenthesized." << endl;
+    cout << "Supported brackets: ( ) [ ] { }" << endl;
+    cout << "Examples:" << endl;
+    cout << "  Well-parenthesized: \"(a+b)[c-d]{e*f}\", \"((()))\", \"\"" << endl;
+    cout << "  Not well-parenthesized: \"(a+b]\", \"((())\", \")abc(\"" << endl;
+    cout << "Maximum input length: " << MAX_INPUT_LENGTH << " characters" << endl;
+    cout << "Maximum nesting depth: " << MAX_STACK_DEPTH << " levels" << endl;
+    cout << "===============" << endl;
 }
 
 int main() {
     string expression;
-
-    cout << "--- Well-Parenthesized Expression Checker ---" << endl;
-    cout << "Enter an expression: ";
-    // Read the entire line, including spaces.
-    getline(cin, expression);
-
-    if (isWellParenthesized(expression)) {
-        cout << "The expression is well-parenthesized." << endl;
-    } else {
-        cout << "The expression is NOT well-parenthesized." << endl;
+    
+    try {
+        cout << "=== Well-Parenthesized Expression Checker ===" << endl;
+        cout << "Enter 'help' for usage information or 'quit' to exit." << endl;
+        cout << "Enter an expression: ";
+        
+        // Safely read input with comprehensive error handling
+        if (!safeGetline(expression)) {
+            cerr << "Error: Failed to read input." << endl;
+            return 1;
+        }
+        
+        // Handle special commands (trim whitespace first)
+        string trimmedExpr = expression;
+        // Simple trim - remove leading/trailing whitespace
+        size_t start = trimmedExpr.find_first_not_of(" \t\n\r");
+        if (start == string::npos) {
+            trimmedExpr = "";
+        } else {
+            size_t end = trimmedExpr.find_last_not_of(" \t\n\r");
+            trimmedExpr = trimmedExpr.substr(start, end - start + 1);
+        }
+        
+        if (trimmedExpr == "help" || trimmedExpr == "HELP") {
+            displayHelp();
+            return 0;
+        }
+        
+        if (trimmedExpr == "quit" || trimmedExpr == "QUIT" || trimmedExpr == "exit" || trimmedExpr == "EXIT") {
+            cout << "Goodbye!" << endl;
+            return 0;
+        }
+        
+        // Process the expression
+        bool result = isWellParenthesized(expression);
+        
+        // Display results with additional information
+        cout << "\n=== RESULTS ===" << endl;
+        cout << "Input expression: \"" << expression << "\"" << endl;
+        cout << "Length: " << expression.length() << " characters" << endl;
+        
+        if (result) {
+            cout << "Status:  The expression is well-parenthesized." << endl;
+        } else {
+            cout << "Status:  The expression is NOT well-parenthesized." << endl;
+        }
+        
+        // Additional analysis
+        size_t openCount = 0, closeCount = 0;
+        for (char ch : expression) {
+            if (isOpeningBracket(ch)) openCount++;
+            if (isClosingBracket(ch)) closeCount++;
+        }
+        
+        cout << "Bracket analysis:" << endl;
+        cout << "  Opening brackets: " << openCount << endl;
+        cout << "  Closing brackets: " << closeCount << endl;
+        
+        if (openCount != closeCount && !result) {
+            cout << "  Issue: Unequal number of opening and closing brackets" << endl;
+        }
+        
+    } catch (const InputTooLargeException& e) {
+        cerr << "Error: Input too large - " << e.what() << endl;
+        cerr << "Please try with a smaller input." << endl;
+        return 2;
+    } catch (const StackOverflowException& e) {
+        cerr << "Error: Stack overflow - " << e.what() << endl;
+        cerr << "The expression has too many nested brackets." << endl;
+        return 3;
+    } catch (const InvalidInputException& e) {
+        cerr << "Error: Invalid input - " << e.what() << endl;
+        cerr << "Please check your input and try again." << endl;
+        return 4;
+    } catch (const bad_alloc& e) {
+        cerr << "Error: Memory allocation failed - " << e.what() << endl;
+        cerr << "The system is out of memory." << endl;
+        return 5;
+    } catch (const exception& e) {
+        cerr << "Unexpected error: " << e.what() << endl;
+        return 6;
+    } catch (...) {
+        cerr << "An unknown error occurred." << endl;
+        return 7;
     }
-
+    
     return 0;
 }
