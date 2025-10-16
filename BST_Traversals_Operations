@@ -1,0 +1,610 @@
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+class Node
+{
+public:
+    int data;
+    Node *left;
+    Node *right;
+
+    Node(int val)
+    {
+        data = val;
+        left = nullptr, right = nullptr;
+    }
+};
+
+// Class to implement the Binary Search Tree and its operations.
+class BST
+{
+private:
+    Node *root;
+    bool isMirrored;
+
+private:
+    bool insertRecursive(Node *&node, int value, bool mirrored)
+    {
+        if (node == nullptr)
+        {
+            node = new Node(value);
+            return true;
+        }
+        if (!mirrored)
+        {
+            if (value < node->data)
+            {
+                return insertRecursive(node->left, value, mirrored);
+            }
+            else if (value > node->data)
+            {
+                return insertRecursive(node->right, value, mirrored);
+            }
+            else
+            {
+                return false; // duplicate
+            }
+        }
+        else
+        {
+            // mirrored BST: left has greater, right has smaller
+            if (value < node->data)
+            {
+                return insertRecursive(node->right, value, mirrored);
+            }
+            else if (value > node->data)
+            {
+                return insertRecursive(node->left, value, mirrored);
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
+    void inorderRecursive(Node *node)
+    {
+        if (node == nullptr)
+            return;
+        inorderRecursive(node->left);
+        cout << node->data << " ";
+        inorderRecursive(node->right);
+    }
+
+    void preorderRecursive(Node *node)
+    {
+        if (node == nullptr)
+            return;
+        cout << node->data << " ";
+        preorderRecursive(node->left);
+        preorderRecursive(node->right);
+    }
+
+    void postorderRecursive(Node *node)
+    {
+        if (node == nullptr)
+            return;
+        postorderRecursive(node->left);
+        postorderRecursive(node->right);
+        cout << node->data << " ";
+    }
+
+    // Iterative Preorder Traversal (Root, Left, Right)
+
+    void preorderIterative(Node *root)
+    {
+        if (root == nullptr)
+            return;
+
+        stack<Node *> s;
+        s.push(root);
+
+        cout << "Pre-order Traversal (Iterative): ";
+        while (!s.empty())
+        {
+            Node *node = s.top();
+            s.pop();
+            cout << node->data << " ";
+
+            if (node->right)
+                s.push(node->right);
+            if (node->left)
+                s.push(node->left);
+        }
+        cout << endl;
+    }
+
+    // Iterative Inorder Traversal (Left, Root, Right)
+
+    void inorderIterative(Node *root)
+    {
+        stack<Node *> s;
+        Node *current = root;
+
+        cout << "In-order Traversal (Iterative): ";
+        while (!s.empty() || current != nullptr)
+        {
+            while (current != nullptr)
+            {
+                s.push(current);
+                current = current->left;
+            }
+
+            current = s.top();
+            s.pop();
+            cout << current->data << " ";
+            current = current->right;
+        }
+        cout << endl;
+    }
+
+    // Iterative Postorder Traversal (Left, Right, Root)
+
+    void postorderIterative(Node *root)
+    {
+        if (root == nullptr)
+            return;
+
+        stack<Node *> stack1, stack2;
+        stack1.push(root);
+
+        while (!stack1.empty())
+        {
+            Node *node = stack1.top();
+            stack1.pop();
+            stack2.push(node);
+
+            if (node->left)
+                stack1.push(node->left);
+            if (node->right)
+                stack1.push(node->right);
+        }
+
+        cout << "Post-order Traversal (Iterative): ";
+        while (!stack2.empty())
+        {
+            cout << stack2.top()->data << " ";
+            stack2.pop();
+        }
+        cout << endl;
+    }
+
+    void bfsIterative(Node *root)
+    {
+        if (!root)
+            return;
+
+        queue<Node *> q;
+        q.push(root);
+
+        while (!q.empty())
+        {
+            Node *current = q.front();
+            q.pop();
+
+            cout << current->data << " ";
+
+            if (current->left)
+                q.push(current->left);
+            if (current->right)
+                q.push(current->right);
+        }
+    }
+
+    void dfsIterative(Node *root)
+    {
+        if (!root)
+            return;
+
+        stack<Node *> s;
+        s.push(root);
+
+        while (!s.empty())
+        {
+            Node *current = s.top();
+            s.pop();
+
+            cout << current->data << " ";
+
+            // Push right first so left is processed first
+            if (current->right)
+                s.push(current->right);
+            if (current->left)
+                s.push(current->left);
+        }
+    }
+
+    int longestPathRecursive(Node *node)
+    {
+        if (node == nullptr)
+        {
+            return 0;
+        }
+        int leftHeight = longestPathRecursive(node->left);
+        int rightHeight = longestPathRecursive(node->right);
+        return 1 + max(leftHeight, rightHeight);
+    }
+
+    Node *minValueNode(Node *node, bool mirrored)
+    {
+        if (!node)
+            return nullptr;
+
+        if (!mirrored)
+        {
+            // Normal BST: go left
+            Node *current = node;
+            while (current && current->left != nullptr)
+            {
+                current = current->left;
+            }
+            return current;
+        }
+        else
+        {
+            // Mirrored BST: go right
+            Node *current = node;
+            while (current && current->right != nullptr)
+            {
+                current = current->right;
+            }
+            return current;
+        }
+    }
+
+    void swapPointersRecursive(Node *node)
+    {
+        if (node == nullptr)
+            return;
+        Node *temp = node->left;
+        node->left = node->right;
+        node->right = temp;
+        swapPointersRecursive(node->left);
+        swapPointersRecursive(node->right);
+    }
+
+    Node *searchRecursive(Node *node, int value, bool mirrored)
+    {
+        if (node == nullptr || node->data == value)
+        {
+            return node;
+        }
+        if (!mirrored)
+        {
+            if (value < node->data)
+            {
+                return searchRecursive(node->left, value, mirrored);
+            }
+            return searchRecursive(node->right, value, mirrored);
+        }
+        else
+        {
+            if (value < node->data)
+            {
+                return searchRecursive(node->right, value, mirrored);
+            }
+            return searchRecursive(node->left, value, mirrored);
+        }
+    }
+
+    Node *removeRecursive(Node *node, int value, bool &deleted, bool mirrored)
+    {
+        if (node == nullptr)
+            return node;
+
+        if (!mirrored)
+        {
+            if (value < node->data)
+            {
+                node->left = removeRecursive(node->left, value, deleted, mirrored);
+            }
+            else if (value > node->data)
+            {
+                node->right = removeRecursive(node->right, value, deleted, mirrored);
+            }
+            else
+            {
+                // Node found
+                if (node->left == nullptr)
+                {
+                    Node *temp = node->right;
+                    delete node;
+                    deleted = true;
+                    return temp;
+                }
+                else if (node->right == nullptr)
+                {
+                    Node *temp = node->left;
+                    delete node;
+                    deleted = true;
+                    return temp;
+                }
+                else
+                {
+                    Node *succ = minValueNode(node->right, mirrored);
+                    node->data = succ->data;
+                    node->right = removeRecursive(node->right, succ->data, deleted, mirrored);
+                }
+            }
+        }
+        else
+        {
+            // Mirrored BST
+            if (value < node->data)
+            {
+                node->right = removeRecursive(node->right, value, deleted, mirrored);
+            }
+            else if (value > node->data)
+            {
+                node->left = removeRecursive(node->left, value, deleted, mirrored);
+            }
+            else
+            {
+                // Node found
+                if (node->right == nullptr)
+                {
+                    Node *temp = node->left;
+                    delete node;
+                    deleted = true;
+                    return temp;
+                }
+                else if (node->left == nullptr)
+                {
+                    Node *temp = node->right;
+                    delete node;
+                    deleted = true;
+                    return temp;
+                }
+                else
+                {
+                    Node *pred = maxValueNode(node->left);
+                    node->data = pred->data;
+                    node->left = removeRecursive(node->left, pred->data, deleted, mirrored);
+                }
+            }
+        }
+        return node;
+    }
+    Node *maxValueNode(Node *node)
+    {
+        Node *current = node;
+        while (current && current->right != nullptr)
+        {
+            current = current->right;
+        }
+        return current;
+    }
+
+public:
+    BST()
+    {
+        root = nullptr;
+        isMirrored = false;
+    }
+    // Public wrappers for display traversals.
+    void displayPreorder()
+    {
+        cout << "Pre-order Traversal: ";
+        preorderRecursive(root);
+        cout << endl;
+    }
+
+    void displayInorder()
+    {
+        cout << "In-order Traversal: ";
+        inorderRecursive(root);
+        cout << endl;
+    }
+
+    void displayPostorder()
+    {
+        cout << "Post-order Traversal: ";
+        postorderRecursive(root);
+        cout << endl;
+    }
+    void displayPreorderIterative()
+    {
+        preorderIterative(root);
+    }
+
+    void displayInorderIterative()
+    {
+        inorderIterative(root);
+    }
+
+    void displayPostorderIterative()
+    {
+        postorderIterative(root);
+    }
+
+    void displayBFS()
+    {
+        cout << "BFS (Level-order) Traversal: ";
+        bfsIterative(root);
+        cout << endl;
+    }
+
+    void displayDFS()
+    {
+        cout << "DFS (Pre-order) Traversal: ";
+        dfsIterative(root);
+        cout << endl;
+    }
+
+    int findLongestPathNodes()
+    {
+        return longestPathRecursive(root);
+    }
+
+    int findMinValue()
+    {
+        if (root == nullptr)
+        {
+            cout << "Tree is empty." << endl;
+            return -1;
+        }
+        Node *minNode = minValueNode(root, isMirrored);
+        return minNode->data;
+    }
+
+    bool remove(int value)
+    {
+        bool deleted = false;
+        root = removeRecursive(root, value, deleted, isMirrored);
+        return deleted;
+    }
+
+    bool insert(int value)
+    {
+        return insertRecursive(root, value, isMirrored);
+    }
+
+    void swapPointers()
+    {
+        swapPointersRecursive(root);
+        isMirrored = !isMirrored;
+        cout << "Roles of left and right pointers have been swapped." << endl;
+    }
+
+    bool search(int value)
+    {
+        return searchRecursive(root, value, isMirrored) != nullptr;
+    }
+};
+
+int main()
+{
+    BST tree;
+    int choice = 0, n, value;
+    cout << "Enter number of nodes initially: ";
+    if (!(cin >> n) || n < 0)
+    {
+        cout << "Invalid number of nodes.\n";
+        return 1;
+    }
+    vector<int> insertedValues; // vector to store inserted values
+
+    cout << "Enter values for " << n << " nodes (non-negative and unique):" << endl;
+
+    for (int i = 0; i < n;)
+    {
+        int val;
+        cout << "Enter a non-negative value for node " << i << " : ";
+        cin >> val;
+        if (val < 0)
+        {
+            cout << "Negative numbers are not allowed. Please enter a non-negative integer." << endl;
+            continue;
+        }
+        if (!tree.insert(val))
+        {
+            cout << "Value " << val << " already exists in the BST. Please enter a unique value." << endl;
+            continue;
+        }
+        insertedValues.push_back(val);
+        cout << val << " inserted successfully." << endl;
+        ++i;
+    }
+
+    cout << "Constructed BST with initial values: ";
+    for (int val : insertedValues)
+    {
+        cout << val << " ";
+    }
+    cout << endl;
+
+    while (choice != 8)
+    {
+        cout << "\n--- Binary Search Tree Operations ---" << endl;
+        cout << "1. Insert a node" << endl;
+        cout << "2. Display nodes by Preorder, In-order, Post-order, BFS, and DFS" << endl;
+        cout << "3. Find number of nodes in the longest path from root" << endl;
+        cout << "4. Find minimum data value" << endl;
+        cout << "5. Change tree (swap left and right pointers)" << endl;
+        cout << "6. Search for a value" << endl;
+        cout << "7. Delete a node's value" << endl;
+        cout << "8. Exit" << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice)
+        {
+        case 1:
+            do
+            {
+                cout << "Enter a non-negative value to insert: ";
+                cin >> value;
+                if (value < 0)
+                {
+                    cout << "Negative numbers are not allowed. Please enter a non-negative integer." << endl;
+                    continue;
+                }
+                if (!tree.insert(value))
+                {
+                    cout << "Value " << value << " already exists in the BST. Please enter a new value." << endl;
+                }
+                else
+                {
+                    cout << value << " inserted successfully." << endl;
+                    break;
+                }
+            } while (true);
+            break;
+        case 2:
+            tree.displayPreorder();
+            tree.displayInorder();
+            tree.displayPostorder();
+            tree.displayPreorderIterative();
+            tree.displayInorderIterative();
+            tree.displayPostorderIterative();
+            tree.displayBFS();
+            tree.displayDFS();
+            break;
+        case 3:
+            cout << "Number of nodes in the longest path: " << tree.findLongestPathNodes() << endl;
+            break;
+        case 4:
+            cout << "Minimum data value in the tree: " << tree.findMinValue() << endl;
+            break;
+        case 5:
+            tree.swapPointers();
+            break;
+        case 6:
+            cout << "Enter value to search for: ";
+            cin >> value;
+            if (tree.search(value))
+            {
+                cout << "Value " << value << " found in the tree." << endl;
+            }
+            else
+            {
+                cout << "Value " << value << " not found in the tree." << endl;
+            }
+            break;
+        case 7:
+            cout << "Enter the value to be deleted: ";
+            cin >> value;
+            if (tree.remove(value))
+            {
+                cout << "Value " << value << " has been successfully deleted." << endl;
+            }
+            else
+            {
+                cout << "Value " << value << " not found in the tree." << endl;
+            }
+            break;
+        case 8:
+            cout << "Exiting program. Goodbye!" << endl;
+            return 0;
+        default:
+            cout << "Invalid choice. Please enter a number between 1 and 8." << endl;
+            break;
+        }
+    }
+    return 0;
+}
