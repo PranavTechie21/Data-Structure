@@ -1,0 +1,267 @@
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+class TreeNode {
+public:
+    string name;
+    bool isFolder;
+    vector<TreeNode*> children;
+    
+    TreeNode(string name, bool isFolder) {
+        this->name = name;
+        this->isFolder = isFolder;
+    }
+};
+
+class FileSystem {
+private:
+    TreeNode* root;
+    vector<TreeNode*> allFolders;
+    
+    void collectAllFolders(TreeNode* node) {
+        if (node == nullptr) return;
+        
+        if (node->isFolder) {
+            allFolders.push_back(node);
+        }
+        
+        for (TreeNode* child : node->children) {
+            collectAllFolders(child);
+        }
+    }
+    
+    void displayTree(TreeNode* node, string prefix = "", bool isLast = true) {
+        if (node == nullptr) return;
+        
+        cout << prefix;
+        cout << (isLast ? "└── " : "├── ");
+        
+        if (node->isFolder) {
+            cout << "[FOLDER] " << node->name << endl;
+        } else {
+            cout << "[FILE] " << node->name << endl;
+        }
+        
+        string newPrefix = prefix + (isLast ? "    " : "│   ");
+        
+        for (size_t i = 0; i < node->children.size(); i++) {
+            bool lastChild = (i == node->children.size() - 1);
+            displayTree(node->children[i], newPrefix, lastChild);
+        }
+    }
+    
+    bool nameExists(TreeNode* parent, const string& name) {
+        for (TreeNode* child : parent->children) {
+            if (child->name == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+public:
+    FileSystem() {
+        root = nullptr;
+        allFolders.clear();
+    }
+    
+    void createRootFolder() {
+        if (root != nullptr) {
+            cout << "Root folder already exists!" << endl;
+            return;
+        }
+        
+        string rootName;
+        cout << "Enter root folder name: ";
+        cin >> rootName;
+        
+        root = new TreeNode(rootName, true);
+        allFolders.push_back(root);
+        cout << "✓ Root folder '" << rootName << "' created successfully!" << endl;
+    }
+    
+    void showFolderMenu() {
+        if (root == nullptr) {
+            cout << "No root folder exists! Please create root folder first." << endl;
+            return;
+        }
+        
+        allFolders.clear();
+        collectAllFolders(root);
+        
+        cout << "\n=== SELECT FOLDER ===" << endl;
+        for (size_t i = 0; i < allFolders.size(); i++) {
+            cout << i + 1 << ". " << allFolders[i]->name << endl;
+        }
+        cout << "=====================" << endl;
+    }
+    
+    void createFolder() {
+        if (root == nullptr) {
+            cout << "Error: Please create root folder first!" << endl;
+            return;
+        }
+        
+        showFolderMenu();
+        
+        int choice;
+        cout << "Select parent folder (1-" << allFolders.size() << "): ";
+        cin >> choice;
+        
+        if (choice < 1 || choice > allFolders.size()) {
+            cout << "Invalid choice!" << endl;
+            return;
+        }
+        
+        TreeNode* parent = allFolders[choice - 1];
+        string folderName;
+        cout << "Enter new folder name: ";
+        cin >> folderName;
+        
+        if (nameExists(parent, folderName)) {
+            cout << "Error: Name already exists in this folder!" << endl;
+            return;
+        }
+        
+        TreeNode* newFolder = new TreeNode(folderName, true);
+        parent->children.push_back(newFolder);
+        allFolders.push_back(newFolder);
+        cout << "✓ Folder '" << folderName << "' created successfully!" << endl;
+    }
+    
+    void createFile() {
+        if (root == nullptr) {
+            cout << "Error: Please create root folder first!" << endl;
+            return;
+        }
+        
+        showFolderMenu();
+        
+        int choice;
+        cout << "Select parent folder (1-" << allFolders.size() << "): ";
+        cin >> choice;
+        
+        if (choice < 1 || choice > allFolders.size()) {
+            cout << "Invalid choice!" << endl;
+            return;
+        }
+        
+        TreeNode* parent = allFolders[choice - 1];
+        string fileName;
+        cout << "Enter new file name: ";
+        cin >> fileName;
+        
+        if (nameExists(parent, fileName)) {
+            cout << "Error: Name already exists in this folder!" << endl;
+            return;
+        }
+        
+        TreeNode* newFile = new TreeNode(fileName, false);
+        parent->children.push_back(newFile);
+        cout << "✓ File '" << fileName << "' created successfully!" << endl;
+    }
+    
+    void search() {
+        if (root == nullptr) {
+            cout << "Error: File system is empty!" << endl;
+            return;
+        }
+        
+        string name;
+        cout << "Enter file/folder name to search: ";
+        cin >> name;
+        
+        // Simple search - you can make it more sophisticated
+        bool found = false;
+        for (TreeNode* folder : allFolders) {
+            if (folder->name == name) {
+                cout << "✓ Found folder: " << name << endl;
+                found = true;
+            }
+            for (TreeNode* child : folder->children) {
+                if (child->name == name) {
+                    string type = child->isFolder ? "folder" : "file";
+                    cout << "✓ Found " << type << ": " << name << endl;
+                    found = true;
+                }
+            }
+        }
+        
+        if (!found) {
+            cout << "✗ '" << name << "' not found!" << endl;
+        }
+    }
+    
+    void display() {
+        if (root == nullptr) {
+            cout << "File system is empty!" << endl;
+            return;
+        }
+        
+        cout << "\nFILE SYSTEM STRUCTURE:" << endl;
+        cout << "======================" << endl;
+        displayTree(root);
+        cout << "======================\n" << endl;
+    }
+    
+    bool hasRoot() {
+        return root != nullptr;
+    }
+};
+
+int main() {
+    FileSystem fs;
+    int choice;
+    
+    cout << "=== FILE SYSTEM MANAGEMENT ===" << endl;
+    
+    while (true) {
+        cout << "\n=== MAIN MENU ===" << endl;
+        if (!fs.hasRoot()) {
+            cout << "1. Create Root Folder" << endl;
+        } else {
+            cout << "1. Create Folder" << endl;
+            cout << "2. Create File" << endl;
+            cout << "3. Search" << endl;
+            cout << "4. Display File System" << endl;
+            cout << "5. Exit" << endl;
+        }
+        cout << "Enter your choice: ";
+        cin >> choice;
+        
+        if (!fs.hasRoot()) {
+            if (choice == 1) {
+                fs.createRootFolder();
+            } else if (choice == 5) {
+                cout << "Goodbye!" << endl;
+                break;
+            } else {
+                cout << "Please create root folder first!" << endl;
+            }
+        } else {
+            switch (choice) {
+                case 1:
+                    fs.createFolder();
+                    break;
+                case 2:
+                    fs.createFile();
+                    break;
+                case 3:
+                    fs.search();
+                    break;
+                case 4:
+                    fs.display();
+                    break;
+                case 5:
+                    cout << "Goodbye!" << endl;
+                    return 0;
+                default:
+                    cout << "Invalid choice!" << endl;
+            }
+        }
+    }
+    
+    return 0;
+}
